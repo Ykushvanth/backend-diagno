@@ -81,7 +81,7 @@ app.post('/api/signup', async (req, res) => {
     try {
         // Hash the password
         const hashedPassword = await bcrypt.hash(password, 10); // 10 is the salt rounds
-
+             // jel
         // Insert the user into the database
         db.run(
             `INSERT INTO users (
