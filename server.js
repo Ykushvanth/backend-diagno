@@ -106,13 +106,12 @@ app.post('/api/signup', async (req, res) => {
                     return res.status(500).json({ error: 'Failed to register user' });
                 }
 
-                    res.json({ 
-                        message: 'User registered successfully',
-                        userId: this.lastID
-                    });
-                }
-            );
-        });
+                res.json({ 
+                    message: 'User registered successfully',
+                    userId: this.lastID
+                });
+            }
+        );
     } catch (error) {
         console.error('Error hashing password:', error);
         return res.status(500).json({ error: 'Failed to hash password' });
