@@ -19,4 +19,4 @@ ALTER TABLE users ADD COLUMN phone_number TEXT;
 PRAGMA table_info(users);
 SELECT * FROM users;
 DROP Table users
-DELETE FROM users WHERE id =2;
+npm install express cors sqlite3 bcrypt jsonwebtoken
