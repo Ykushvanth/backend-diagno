@@ -99,7 +99,7 @@ async function analyzeTextUsingRapidAPI(text) {
         }, {
             headers: {
                 'content-type': 'application/json',
-                'X-RapidAPI-Key': 'cf8027a37emsh387b90ad7fafc10p1d6032jsne2a2545eb75f',
+                'X-RapidAPI-Key': '33169e1b0bmsh020812e008c5a72p16d18bjsn7baf170e0067',
                 'X-RapidAPI-Host': 'cheapest-gpt-4-turbo-gpt-4-vision-chatgpt-openai-ai-api.p.rapidapi.com'
             }
         });
