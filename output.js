@@ -85,7 +85,24 @@ async function analyzeTextUsingRapidAPI(text) {
     console.log('Starting GPT analysis');
     const url = 'https://cheapest-gpt-4-turbo-gpt-4-vision-chatgpt-openai-ai-api.p.rapidapi.com/v1/chat/completions';
     
-    const systemPrompt = `You are a medical expert analyzing medical reports. Provide a structured analysis with exactly these sections: 1. Symptoms, 2. Diagnosis, 3. Severity Level, 4. Treatment Recommendations, and 5. Recommended Specialist.`;
+    const systemPrompt = `You are a medical expert analyzing medical reports. Provide a structured analysis with exactly these sections, with each section starting with its number and title exactly as shown:
+
+1. Symptoms:
+[Content]
+
+2. Diagnosis:
+[Content]
+
+3. Severity Level:
+[Content]
+
+4. Treatment Recommendations:
+[Content]
+
+5. Recommended Specialist:
+[Content]
+
+Ensure each section starts with its number and title exactly as shown above.`;
     
     try {
         console.log('Sending request to GPT API...');
@@ -124,9 +141,29 @@ async function translateText(text, targetLanguage) {
     try {
         console.log(`Translating to ${targetLanguage}...`);
         const languageCode = getLanguageCode(targetLanguage);
-        const translatedText = await translate(text, { to: languageCode });
-        console.log('Translation completed');
-        return translatedText;
+        
+        // Split the text into sections based on numbered headers
+        const sections = text.split(/(?=\d\.\s+[^:]+:)/);
+        
+        // Translate each section separately while preserving the numbering
+        const translatedSections = await Promise.all(
+            sections.map(async (section) => {
+                if (!section.trim()) return '';
+                
+                // Extract the section header and content
+                const match = section.match(/^(\d\.\s+[^:]+:)([\s\S]+)$/);
+                if (match) {
+                    const [_, header, content] = match;
+                    // Translate only the content, keep the header structure
+                    const translatedContent = await translate(content.trim(), { to: languageCode });
+                    return `${header}\n${translatedContent}`;
+                }
+                return await translate(section.trim(), { to: languageCode });
+            })
+        );
+        
+        // Join the sections with newlines
+        return translatedSections.join('\n\n');
     } catch (error) {
         console.error('Translation error:', error);
         throw new Error(`Translation failed: ${error.message}`);
