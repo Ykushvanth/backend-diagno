@@ -111,7 +111,10 @@ const initializeDbAndServe = async () => {
                     }
 
                     console.log('Processing file:', req.file.path);
-                    const result = await handleMedicalReportAnalysis(req.file.path);
+                    const language = req.body.language || 'english';
+                    console.log('Target language:', language);
+                    
+                    const result = await handleMedicalReportAnalysis(req.file.path, language);
                     console.log('Analysis completed successfully');
 
                     res.json({

@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs').promises;
 const Tesseract = require('tesseract.js');
 const axios = require('axios');
+const translate = require('translate-google');
 
 // Create uploads directory if it doesn't exist
 const uploadDir = path.join(__dirname, 'uploads');
@@ -99,7 +100,7 @@ async function analyzeTextUsingRapidAPI(text) {
         }, {
             headers: {
                 'content-type': 'application/json',
-                'X-RapidAPI-Key': '33169e1b0bmsh020812e008c5a72p16d18bjsn7baf170e0067',
+                'X-RapidAPI-Key': '3efdacf94emshf16c671952bd548p154347jsned18c78a2091',
                 'X-RapidAPI-Host': 'cheapest-gpt-4-turbo-gpt-4-vision-chatgpt-openai-ai-api.p.rapidapi.com'
             }
         });
@@ -116,8 +117,41 @@ async function analyzeTextUsingRapidAPI(text) {
     }
 }
 
+// Translate text using Google Translate
+async function translateText(text, targetLanguage) {
+    if (targetLanguage === 'english') return text;
+    
+    try {
+        console.log(`Translating to ${targetLanguage}...`);
+        const languageCode = getLanguageCode(targetLanguage);
+        const translatedText = await translate(text, { to: languageCode });
+        console.log('Translation completed');
+        return translatedText;
+    } catch (error) {
+        console.error('Translation error:', error);
+        throw new Error(`Translation failed: ${error.message}`);
+    }
+}
+
+// Get language code for translation
+function getLanguageCode(language) {
+    const languageCodes = {
+        'english': 'en',
+        'telugu': 'te',
+        'hindi': 'hi',
+        'tamil': 'ta',
+        'kannada': 'kn',
+        'malayalam': 'ml',
+        'marathi': 'mr',
+        'bengali': 'bn',
+        'gujarati': 'gu',
+        'punjabi': 'pa'
+    };
+    return languageCodes[language.toLowerCase()] || 'en';
+}
+
 // Handle medical report analysis request
-async function handleMedicalReportAnalysis(filePath) {
+async function handleMedicalReportAnalysis(filePath, language = 'english') {
     console.log('Starting analysis for file:', filePath);
     try {
         // Verify file exists
@@ -137,6 +171,10 @@ async function handleMedicalReportAnalysis(filePath) {
         // Analyze the extracted text using GPT-4
         const analysis = await analyzeTextUsingRapidAPI(text);
         console.log('Analysis completed');
+
+        // Translate the analysis if needed
+        const translatedAnalysis = await translateText(analysis, language);
+        console.log('Translation completed (if needed)');
         
         // Clean up uploaded file
         try {
@@ -148,7 +186,7 @@ async function handleMedicalReportAnalysis(filePath) {
 
         return {
             success: true,
-            formattedOutput: analysis,
+            formattedOutput: translatedAnalysis,
             extractedText: text
         };
 
