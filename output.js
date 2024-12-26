@@ -4,6 +4,8 @@ const fs = require('fs').promises;
 const Tesseract = require('tesseract.js');
 const axios = require('axios');
 const translate = require('translate-google');
+const textToSpeech = require('@google-cloud/text-to-speech');
+const ttsClient = new textToSpeech.TextToSpeechClient();
 
 // Create uploads directory if it doesn't exist
 const uploadDir = path.join(__dirname, 'uploads');
@@ -85,24 +87,31 @@ async function analyzeTextUsingRapidAPI(text) {
     console.log('Starting GPT analysis');
     const url = 'https://cheapest-gpt-4-turbo-gpt-4-vision-chatgpt-openai-ai-api.p.rapidapi.com/v1/chat/completions';
     
-    const systemPrompt = `You are a medical expert analyzing medical reports. Provide a structured analysis with exactly these sections, with each section starting with its number and title exactly as shown:
+    const systemPrompt = `You are a medical expert. Analyze this medical report and provide a clear, structured response. 
+    Always follow this EXACT format with EXACT numbering:
 
-1. Symptoms:
-[Content]
+    1. Symptoms:
+    - List all symptoms mentioned
+    - Be specific and clear
 
-2. Diagnosis:
-[Content]
+    2. Diagnosis:
+    - Provide clear diagnosis
+    - Include medical terminology with simple explanations
 
-3. Severity Level:
-[Content]
+    3. Severity Level:
+    - Specify severity (Mild/Moderate/Severe)
+    - Explain why this level was chosen
 
-4. Treatment Recommendations:
-[Content]
+    4. Treatment Recommendations:
+    - List specific treatments needed
+    - Include medications if applicable
+    - Provide lifestyle recommendations
 
-5. Recommended Specialist:
-[Content]
+    5. Recommended Specialist:
+    - Specialist: [EXACTLY ONE OF: Dermatologist/Cardiologist/Neurologist/Orthopedist/Ophthalmologist/ENT/Gastroenterologist/Pulmonologist/Endocrinologist/Oncologist]
+    - Reason: [Brief explanation why this specialist is needed]
 
-Ensure each section starts with its number and title exactly as shown above.`;
+    Ensure each section starts with the exact number and heading as shown above.`;
     
     try {
         console.log('Sending request to GPT API...');
@@ -117,7 +126,7 @@ Ensure each section starts with its number and title exactly as shown above.`;
         }, {
             headers: {
                 'content-type': 'application/json',
-                'X-RapidAPI-Key': '3efdacf94emshf16c671952bd548p154347jsned18c78a2091',
+                'X-RapidAPI-Key': '84b4c31c99msh01ed13b98a6eaa3p125e24jsnd127670bc3d3',
                 'X-RapidAPI-Host': 'cheapest-gpt-4-turbo-gpt-4-vision-chatgpt-openai-ai-api.p.rapidapi.com'
             }
         });
