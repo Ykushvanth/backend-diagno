@@ -264,7 +264,31 @@ const initializeDbAndServe = async () => {
             }
         });
 
-        const PORT = 3008;
+        app.get('/api/user/:userId', async (request, response) => {
+            try {
+                const { userId } = request.params;
+                console.log(userId)
+                const query = `SELECT id, username, firstname, lastname, email, phoneNumber, dateOfBirth, gender
+                              FROM users 
+                              WHERE id = ?`;
+                console.log(query)
+                const user = await db.get(query, [userId]);
+                
+                if (!user) {
+                    return response.status(404).json({ error: 'User not found' });
+                }
+        
+                response.json(user);
+            } catch (error) {
+                console.error('Error fetching user profile:', error);
+                response.status(500).json({ 
+                    error: 'Internal server error', 
+                    details: error.message 
+                });
+            }
+        });
+
+        const PORT = 3009;
         app.listen(PORT, () => {
             console.log(`Server is running on http://localhost:${PORT}`);
         });

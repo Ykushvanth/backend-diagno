@@ -11,6 +11,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@google-cloud/text-to-speech": "^5.7.0",
     "@google-cloud/translate": "^8.5.0",
     "@vitalets/google-translate-api": "^9.2.0",
     "axios": "^1.7.9",
