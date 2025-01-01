@@ -33,7 +33,7 @@ SELECT * FROM appointments;
 
 
 -- PRAGMA table_info(users);
-SELECT * FROM users;
+SELECT * FROM doctors;
 -- .schema users
 -- DROP Table users
 -- npm install express cors sqlite3 bcrypt jsonwebtoken
@@ -53,10 +53,10 @@ SELECT * FROM users;
 --     location_url VARCHAR(255),
 --     image_url VARCHAR(255)
 -- );
-SELECT * FROM doctors
-UPDATE doctors
-SET location = 'Banjara Hills, Hyderabad'
-WHERE id IN (9, 10);
+-- SELECT * FROM doctors
+-- UPDATE doctors
+-- SET location = 'Banjara Hills, Hyderabad'
+-- WHERE id IN (9, 10);
 
 
 -- INSERT INTO doctors (id, name, specialization, appointment_cost, location, rating, phone_number, location_url, image_url) VALUES
@@ -78,27 +78,60 @@ WHERE id IN (9, 10);
 --  FROM doctors 
 -- ORDER BY location
 
-CREATE TABLE appointments (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    doctor_id INTEGER NOT NULL,
-    user_id INTEGER NOT NULL,
-    patient_name TEXT NOT NULL,
-    gender TEXT,
-    age INTEGER,
-    date TEXT NOT NULL,
-    time TEXT NOT NULL,
-    phone_number TEXT,
-    address TEXT,
-    specialist TEXT,
-    location TEXT,
-    status TEXT DEFAULT 'Upcoming',
-    symptoms TEXT,
-    prescription TEXT,
-    diagnosis TEXT,
-    notes TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (doctor_id) REFERENCES doctors (id),
-    FOREIGN KEY (user_id) REFERENCES users (id)
-);
+-- CREATE TABLE appointments (
+--     id INTEGER PRIMARY KEY AUTOINCREMENT,
+--     doctor_id INTEGER NOT NULL,
+--     user_id INTEGER NOT NULL,
+--     patient_name TEXT NOT NULL,
+--     gender TEXT,
+--     age INTEGER,
+--     date TEXT NOT NULL,
+--     time TEXT NOT NULL,
+--     phone_number TEXT,
+--     address TEXT,
+--     specialist TEXT,
+--     location TEXT,
+--     status TEXT DEFAULT 'Upcoming',
+--     symptoms TEXT,
+--     prescription TEXT,
+--     diagnosis TEXT,
+--     notes TEXT,
+--     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+--     FOREIGN KEY (doctor_id) REFERENCES doctors (id),
+--     FOREIGN KEY (user_id) REFERENCES users (id)
+-- );
 
-.schema appointments
+-- .schema appointments
+
+-- ALTER TABLE doctors ADD COLUMN username VARCHAR(255) ;
+-- ALTER TABLE doctors ADD COLUMN password VARCHAR(255);
+-- ALTER TABLE doctors ADD COLUMN qualification VARCHAR(255);
+-- ALTER TABLE doctors ADD COLUMN experience INT;
+
+-- UPDATE doctors 
+-- SET username = 'Sandeep Gupta', 
+--     password = 'Sandeep Gupta', 
+--     qualification = 'MD, DM (Cardiology) - AIIMS, New Delhi', 
+--     experience = 6
+-- WHERE name = 'Dr. Sandeep Gupta';
+
+-- UPDATE doctors 
+-- SET username = 'Neelam Agarwal', 
+--     password = 'Neelam Agarwal', 
+--     qualification = 'MD, DM (Cardiology) - CMC, Vellore', 
+--     experience = 3
+-- WHERE name = 'Dr. Neelam Agarwal';
+
+-- UPDATE doctors 
+-- SET username = 'Bharat Reddy', 
+--     password = 'Bharat Reddy', 
+--     qualification = 'MD, DM (Cardiology) - NIMS, Hyderabad', 
+--     experience = 7
+-- WHERE name = 'Dr. Bharat Reddy';
+
+-- UPDATE doctors 
+-- SET username = 'Shalini Rao', 
+--     password = 'Shalini Rao', 
+--     qualification = 'MD, DM (Cardiology) - KMC, Manipal', 
+--     experience = 5
+-- WHERE name = 'Dr. Shalini Rao';

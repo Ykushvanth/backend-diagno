@@ -10,7 +10,13 @@ const { upload, handleMedicalReportAnalysis } = require('./output');
 const app = express();
 
 // Configure CORS before other middleware
-app.use(cors());
+// app.use(cors());
+app.use(cors({
+    origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3004'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
+}));
 
 // Other middleware
 app.use(express.json());
@@ -204,6 +210,134 @@ const initializeDbAndServe = async () => {
         }
     });
     
+    // Add doctor login endpoint
+app.post('/doctor-login', async (request, response) => {
+    try {
+        const { username, password } = request.body;
+        
+        const selectDoctorQuery = `
+            SELECT id, username, password, name, specialization, location, experience, qualification, image_url,	phone_number,rating,appointment_cost
+            FROM doctors 
+            WHERE username = ? AND password = ?
+        `;
+        
+        const doctor = await db.get(selectDoctorQuery, [username, password]);
+        console.log('Found doctor:', { ...doctor, password: '[HIDDEN]' });
+        
+        if (!doctor) {
+            return response.status(400).json({ error: 'Invalid username or password' });
+        }
+
+        // Create doctor object without password
+        const doctorData = {
+            id: doctor.id,
+            username: doctor.username,
+            name: doctor.name,
+            specialization: doctor.specialization,
+            location: doctor.location,
+            experience: doctor.experience,
+            qualification: doctor.qualification,
+            profile_image: doctor.image_url,
+            appointment_cost:doctor.appointment_cost,
+            rating:doctor.rating,
+            phone_number:doctor.phone_number
+        };
+
+        const jwtToken = jwt.sign({ username: username, role: 'doctor' }, 'MY_SECRET_TOKEN');
+        
+        response.json({ 
+            jwt_token: jwtToken,
+            doctor: doctorData
+        });
+        
+    } catch (error) {
+        console.error('Doctor login error:', error);
+        response.status(500).json({ 
+            error: 'Internal server error', 
+            details: error.message 
+        });
+    }
+});
+
+app.get('/api/doctor-appointments/:doctorId', async (req, res) => {
+    try {
+        const { doctorId } = req.params;
+        console.log('Fetching appointments for doctor:', doctorId);
+
+        const query = `
+            SELECT 
+                id,
+                user_id,
+                patient_name,
+                date,
+                time,
+                status,
+                symptoms,
+                prescription,
+                diagnosis,
+                notes
+            FROM appointments 
+            WHERE doctor_id = ?
+            ORDER BY 
+                CASE 
+                    WHEN status = 'Upcoming' THEN 1
+                    WHEN status = 'Completed' THEN 2
+                    ELSE 3
+                END,
+                date DESC,
+                time DESC
+        `;
+
+        const appointments = await db.all(query, [doctorId]);
+        console.log(`Found ${appointments.length} appointments for doctor ${doctorId}`);
+
+        res.json(appointments);
+
+    } catch (error) {
+        console.error('Error fetching doctor appointments:', error);
+        res.status(500).json({ 
+            error: 'Failed to fetch appointments',
+            details: error.message 
+        });
+    }
+});
+
+// Add patient history endpoint
+app.get('/api/patient-history/:patientId/:doctorId', async (req, res) => {
+    try {
+        const { patientId, doctorId } = req.params;
+        console.log('Fetching patient history:', { patientId, doctorId });
+
+        const query = `
+            SELECT 
+                a.id,
+                a.date,
+                a.time,
+                a.status,
+                a.symptoms,
+                a.prescription,
+                a.diagnosis,
+                a.notes
+            FROM appointments a
+            WHERE a.user_id = ? 
+            AND a.doctor_id = ?
+            ORDER BY a.date DESC, a.time DESC
+        `;
+
+        const history = await db.all(query, [patientId, doctorId]);
+        console.log(`Found ${history.length} historical records`);
+
+        res.json(history);
+
+    } catch (error) {
+        console.error('Error fetching patient history:', error);
+        res.status(500).json({ 
+            error: 'Failed to fetch patient history',
+            details: error.message 
+        });
+    }
+});
+
 
     // Helper function to calculate age
     // app.post('/api/login', async (request, response) => {
