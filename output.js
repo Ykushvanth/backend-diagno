@@ -1,6 +1,8 @@
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
+// const fs = require('fs');
+
 const Tesseract = require('tesseract.js');
 const axios = require('axios');
 const translate = require('translate-google');
@@ -126,7 +128,7 @@ async function analyzeTextUsingRapidAPI(text) {
         }, {
             headers: {
                 'content-type': 'application/json',
-                'X-RapidAPI-Key': '84b4c31c99msh01ed13b98a6eaa3p125e24jsnd127670bc3d3',
+                'X-RapidAPI-Key': 'a6a70cb61bmshde6cbd7e1fb2734p1deca3jsn16d595f3c30a',
                 'X-RapidAPI-Host': 'cheapest-gpt-4-turbo-gpt-4-vision-chatgpt-openai-ai-api.p.rapidapi.com'
             }
         });
@@ -251,7 +253,114 @@ async function handleMedicalReportAnalysis(filePath, language = 'english') {
     }
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const analyzeXrayUsingRapidAPI = async (imagePath) => {
+    const url = 'https://cheapest-gpt-4-turbo-gpt-4-vision-chatgpt-openai-ai-api.p.rapidapi.com/v1/chat/completions';
+    
+    try {
+        const imageBuffer = await fs.readFile(imagePath); // Fixed line
+        const base64Image = imageBuffer.toString('base64');
+        
+        const headers = {
+            'content-type': 'application/json',
+            'X-RapidAPI-Key': 'a6a70cb61bmshde6cbd7e1fb2734p1deca3jsn16d595f3c30a',
+            'X-RapidAPI-Host': 'cheapest-gpt-4-turbo-gpt-4-vision-chatgpt-openai-ai-api.p.rapidapi.com'
+        };
+
+        const systemPrompt = `You are an experienced radiologist. Analyze this X-ray image and provide 
+        a detailed interpretative report. Be specific and explain findings in both medical and simple terms. 
+        Follow EXACTLY this format:
+        1. X-ray Overview:
+        - Describe what type of X-ray this is (e.g., chest, limb, spine)
+        - Explain the quality and positioning of the image
+        - Identify and describe key anatomical structures visible
+        - Note any obvious abnormalities or areas of interest
+        2. Fracture Status:
+        - Clearly state if any fractures are present or not
+        - If fractures exist, describe exact location and type
+        - Explain bone alignment and any displacement
+        - Describe any signs of previous fractures or healing
+        3. Severity Level:
+        - Provide clear assessment (Mild/Moderate/Severe)
+        - Explain why this severity level was chosen
+        - Describe potential impact on patient mobility/function
+        - Compare to normal expected appearance
+        4. Required Actions:
+        - List specific immediate medical attention needed
+        - Recommend types of specialists to consult
+        - Suggest specific imaging or tests needed
+        - Outline urgent vs non-urgent steps
+        5. Care Instructions:
+        - List specific activity restrictions with timeframes
+        - Provide detailed pain management suggestions
+        - Explain expected recovery timeline
+        - Specify when to seek immediate medical attention
+        - Detail follow-up care requirements`;
+
+        const payload = {
+            model: "gpt-4-vision-preview",
+            messages: [
+                {
+                    role: "system",
+                    content: systemPrompt
+                },
+                {
+                    role: "user",
+                    content: [
+                        {
+                            type: "text",
+                            text: "Please analyze this X-ray image following the specified format."
+                        },
+                        {
+                            type: "image_url",
+                            image_url: {
+                                url: `data:image/jpeg;base64,${base64Image}`
+                            }
+                        }
+                    ]
+                }
+            ],
+            temperature: 0.2,
+            max_tokens: 1000
+        };
+
+        const response = await axios.post(url, payload, { headers });
+        
+        if (!response.data?.choices?.[0]?.message?.content) {
+            throw new Error('Invalid response structure from API');
+        }
+
+        return response.data.choices[0].message.content
+            .trim()
+            .replace(/\n\n+/g, '\n\n')
+            .replace(/^\s+/gm, '')
+            .replace(/^(\d+)\./gm, '\n$1.');
+
+    } catch (error) {
+        console.error('X-ray Analysis Error:', error.response?.data || error.message);
+        throw new Error(`X-ray analysis failed: ${error.message}`);
+    }
+};
+
+
+
 module.exports = {
     upload,
-    handleMedicalReportAnalysis
+    handleMedicalReportAnalysis,
+    analyzeXrayUsingRapidAPI
 };

@@ -1,11 +1,12 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const fs = require('fs').promises;
 const {open} = require("sqlite")
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const cors = require('cors');
-const { upload, handleMedicalReportAnalysis } = require('./output');
+const { upload, handleMedicalReportAnalysis,analyzeXrayUsingRapidAPI } = require('./output');
 
 const app = express();
 
@@ -898,6 +899,93 @@ app.get('/booking-history', authenticateToken, async (req, res) => {
 //         res.status(500).json({ error: 'Server error' });
 //     }
 // });
+
+
+// Upload route
+app.post('/upload', upload.single('file'), async (req, res) => {
+    console.log('Upload request received:', {
+        file: req?.file?.originalname,
+        language: req.body?.language,
+        fileType: req.body?.fileType
+    });
+
+    try {
+        if (!req.file) {
+            console.log('No file received');
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
+
+        const inputFile = req.file.path;
+        const targetLanguage = (req.body.language || 'english').toLowerCase();
+        const fileType = req.body.fileType || 'text';
+
+        console.log('Processing file:', {
+            path: inputFile,
+            language: targetLanguage,
+            type: fileType
+        });
+
+        let imagePath = inputFile;
+        let analysisResult;
+
+        try {
+            if (fileType === 'xray') {
+                console.log('Starting X-ray analysis...');
+                analysisResult = await analyzeXrayUsingRapidAPI(imagePath);
+                console.log('X-ray analysis completed');
+            } else {
+                const extractedText = await extractTextFromImage(imagePath);
+                if (!extractedText) {
+                    throw new Error('No text could be extracted from the image');
+                }
+                analysisResult = await analyzeTextUsingRapidAPI(extractedText);
+            }
+
+            if (!analysisResult) {
+                throw new Error('Analysis failed to produce results');
+            }
+
+            let finalOutput = analysisResult;
+            if (targetLanguage !== 'english') {
+                console.log(`Translating to ${targetLanguage}...`);
+                finalOutput = await translateText(analysisResult, targetLanguage);
+            }
+
+            // Cleanup files
+            try {
+                fs.unlinkSync(inputFile);
+                if (imagePath !== inputFile) {
+                    fs.unlinkSync(imagePath);
+                }
+            } catch (cleanupError) {
+                console.error('File cleanup error:', cleanupError);
+            }
+
+            console.log('Processing completed successfully');
+            res.status(200).json({
+                formattedOutput: finalOutput,
+                targetLanguage,
+                translationPerformed: targetLanguage !== 'english',
+                fileType
+            });
+
+        } catch (processingError) {
+            console.error('Processing error:', processingError);
+            res.status(400).json({
+                error: 'Processing failed',
+                details: processingError.message
+            });
+        }
+
+    } catch (error) {
+        console.error('Upload route error:', error);
+        res.status(500).json({
+            error: 'Server error',
+            details: error.message
+        });
+    }
+});
+
 
 
 initializeDbAndServe();
