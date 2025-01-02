@@ -78,31 +78,31 @@ SELECT * FROM doctors;
 --  FROM doctors 
 -- ORDER BY location
 
--- CREATE TABLE appointments (
---     id INTEGER PRIMARY KEY AUTOINCREMENT,
---     doctor_id INTEGER NOT NULL,
---     user_id INTEGER NOT NULL,
---     patient_name TEXT NOT NULL,
---     gender TEXT,
---     age INTEGER,
---     date TEXT NOT NULL,
---     time TEXT NOT NULL,
---     phone_number TEXT,
---     address TEXT,
---     specialist TEXT,
---     location TEXT,
---     status TEXT DEFAULT 'Upcoming',
---     symptoms TEXT,
---     prescription TEXT,
---     diagnosis TEXT,
---     notes TEXT,
---     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
---     FOREIGN KEY (doctor_id) REFERENCES doctors (id),
---     FOREIGN KEY (user_id) REFERENCES users (id)
--- );
+CREATE TABLE appointments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    doctor_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    patient_name TEXT NOT NULL,
+    gender TEXT,
+    age INTEGER,
+    date TEXT NOT NULL,
+    time TEXT NOT NULL,
+    phone_number TEXT,
+    address TEXT,
+    specialist TEXT,
+    location TEXT,
+    status TEXT DEFAULT 'Upcoming',
+    symptoms TEXT,
+    prescription TEXT,
+    diagnosis TEXT,
+    notes TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (doctor_id) REFERENCES doctors (id),
+    FOREIGN KEY (user_id) REFERENCES users (id)
+);
 
--- .schema appointments
-
+.schema appointments
+Drop Table appointments
 -- ALTER TABLE doctors ADD COLUMN username VARCHAR(255) ;
 -- ALTER TABLE doctors ADD COLUMN password VARCHAR(255);
 -- ALTER TABLE doctors ADD COLUMN qualification VARCHAR(255);
@@ -135,3 +135,12 @@ SELECT * FROM doctors;
 --     qualification = 'MD, DM (Cardiology) - KMC, Manipal', 
 --     experience = 5
 -- WHERE name = 'Dr. Shalini Rao';
+SELECT * FROM appointments
+SELECT * FROM doctors
+
+ALTER TABLE appointments ADD column mode TEXT;
+.schema appointments
+
+UPDATE appointments 
+SET time = '22:34'  -- New time in 24-hour format
+WHERE id = 1;  

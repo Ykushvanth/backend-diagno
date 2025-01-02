@@ -262,43 +262,27 @@ app.post('/doctor-login', async (request, response) => {
 app.get('/api/doctor-appointments/:doctorId', async (req, res) => {
     try {
         const { doctorId } = req.params;
-        console.log('Fetching appointments for doctor:', doctorId);
-
         const query = `
             SELECT 
-                id,
-                user_id,
-                patient_name,
-                date,
-                time,
-                status,
-                symptoms,
-                prescription,
-                diagnosis,
-                notes
-            FROM appointments 
-            WHERE doctor_id = ?
-            ORDER BY 
-                CASE 
-                    WHEN status = 'Upcoming' THEN 1
-                    WHEN status = 'Completed' THEN 2
-                    ELSE 3
-                END,
-                date DESC,
-                time DESC
+                a.id,
+                a.user_id,
+                a.date,
+                a.time,
+                a.mode,
+                a.status,
+                u.firstname as patient_name
+            FROM appointments a
+            JOIN users u ON a.user_id = u.id
+            WHERE a.doctor_id = ?
+            ORDER BY a.date DESC, a.time DESC
         `;
-
+        
         const appointments = await db.all(query, [doctorId]);
-        console.log(`Found ${appointments.length} appointments for doctor ${doctorId}`);
-
+        console.log('Fetched appointments:', appointments); // Debug log
         res.json(appointments);
-
     } catch (error) {
-        console.error('Error fetching doctor appointments:', error);
-        res.status(500).json({ 
-            error: 'Failed to fetch appointments',
-            details: error.message 
-        });
+        console.error('Error:', error);
+        res.status(500).json({ error: 'Failed to fetch appointments' });
     }
 });
 
