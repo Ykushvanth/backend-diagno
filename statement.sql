@@ -142,5 +142,9 @@ ALTER TABLE appointments ADD column mode TEXT;
 .schema appointments
 
 UPDATE appointments 
-SET time = '22:34'  -- New time in 24-hour format
-WHERE id = 1;  
+SET time = '8:47'  -- New time in 24-hour format
+WHERE id = 5;  
+
+UPDATE appointments 
+SET date = '2025-01-03'  -- New date in YYYY-MM-DD format
+WHERE id = 5;  

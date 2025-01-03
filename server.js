@@ -438,60 +438,54 @@ app.get('/api/patient-history/:patientId/:doctorId', async (req, res) => {
 
     // Signup endpoint
     app.post('/api/signup', async (req, res) => {
-        console.log('Signup request received:', { ...req.body, password: '[HIDDEN]' });
-        const {
-            username,
-            password,
-            email,
-            firstname,
-            lastname,
-            phoneNumber,
-            dateOfBirth,
-            gender
-        } = req.body;
-
-        if (!username || !password || !email) {
-            console.log('Missing required fields');
-            return res.status(400).json({ error: 'Username, password, and email are required' });
-        }
-
-        if (!dateOfBirth) {
-            return res.status(400).json({ error: 'Date of birth is required' });
-        }
-
-        const age = calculateAge(dateOfBirth);
-        if (age < 18) {
-            console.log('User age verification failed:', age);
-            return res.status(400).json({ error: 'You must be 18 years or older to register' });
-        }
-
         try {
-            const hashedPassword = await bcrypt.hash(password, 10);
-            db.run(
-                `INSERT INTO users (username, firstname,  lastname, email,  phoneNumber, dateOfBirth, gender, password) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                [username, firstname, lastname,email,  phoneNumber, dateOfBirth, gender , hashedPassword],
-                function(err) {
-                    if (err) {
-                        console.error('Database error:', err.message);
-                        if (err.message.includes('UNIQUE constraint failed')) {
-                            return res.status(400).json({
-                                error: 'Username or email already exists'
-                            });
-                        }
-                        return res.status(500).json({ error: 'Failed to register user' });
-                    }
+            const { username, firstname, lastname, email, phoneNumber, dateOfBirth, password, gender } = req.body;
 
-                    console.log('User registered successfully:', username);
-                    res.json({
-                        message: 'User registered successfully',
-                        userId: this.lastID
-                    });
-                }
-            );
+            // First, check if email already exists
+            const existingUser = await db.get('SELECT email FROM users WHERE email = ?', [email]);
+            
+            if (existingUser) {
+                return res.status(400).json({
+                    error: 'Email already registered. Please use a different email or try logging in.'
+                });
+            }
+
+            // If email doesn't exist, proceed with registration
+            const hashedPassword = await bcrypt.hash(password, 10);
+            
+            const query = `
+                INSERT INTO users (
+                    username, 
+                    firstname, 
+                    lastname, 
+                    email, 
+                    phone_number, 
+                    date_of_birth, 
+                    gender, 
+                    password
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `;
+
+            await db.run(query, [
+                username,
+                firstname,
+                lastname,
+                email,
+                phoneNumber,
+                dateOfBirth,
+                gender,
+                hashedPassword
+            ]);
+
+            res.status(201).json({
+                message: 'User registered successfully'
+            });
+
         } catch (error) {
-            console.error('Signup error:', error.message);
-            res.status(500).json({ error: 'Server error' });
+            console.error('Signup error:', error);
+            res.status(500).json({
+                error: 'Registration failed. Please try again.'
+            });
         }
     });
 
@@ -675,7 +669,7 @@ app.post('/api/appointments', async (req, res) => {
                 age,
                 date,
                 time,
-                phone_number,
+                phoneNumber,
                 address,
                 specialist,
                 location,
@@ -690,7 +684,7 @@ app.post('/api/appointments', async (req, res) => {
             age,
             date,
             time,
-            phone_number,
+            phoneNumber,
             address,
             specialist,
             location,
