@@ -37,7 +37,7 @@ const app = express();
 // Configure CORS before other middleware
 // app.use(cors());
 app.use(cors({
-    origin: ['http://localhost:3001', 'http://localhost:3002', 'http://localhost:3004','https://main-frontend-for-diagno-4fpycnegs.vercel.app'],
+    origin: ['http://localhost:3001', 'http://localhost:3002', 'http://localhost:3000','https://main-frontend-for-diagno-4fpycnegs.vercel.app'],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
@@ -308,12 +308,12 @@ app.get('/api/doctor-appointments/:doctorId', async (req, res) => {
         const query = `
             SELECT 
                 a.id,
-                a.user_id,
                 a.date,
                 a.time,
                 a.mode,
-                a.status,
-                u.firstname as patient_name
+                a.meeting_id,
+                u.firstname as patient_name,
+                u.lastname as patient_lastname
             FROM appointments a
             JOIN users u ON a.user_id = u.id
             WHERE a.doctor_id = ?
@@ -321,13 +321,36 @@ app.get('/api/doctor-appointments/:doctorId', async (req, res) => {
         `;
         
         const appointments = await db.all(query, [doctorId]);
-        console.log('Fetched appointments:', appointments); // Debug log
-        res.json(appointments);
+        
+        // Generate meeting IDs for online appointments that don't have one
+        const updatedAppointments = await Promise.all(appointments.map(async (apt) => {
+            if (apt.mode === 'Online' && (!apt.meeting_id || apt.meeting_id === 'N/A')) {
+                const meeting_id = generateUUID(); // Implement this function
+                await db.run(
+                    'UPDATE appointments SET meeting_id = ? WHERE id = ?',
+                    [meeting_id, apt.id]
+                );
+                return { ...apt, meeting_id };
+            }
+            return apt;
+        }));
+
+        console.log('Sending appointments:', updatedAppointments); // Debug log
+        res.json(updatedAppointments);
     } catch (error) {
         console.error('Error:', error);
         res.status(500).json({ error: 'Failed to fetch appointments' });
     }
 });
+
+// Helper function to generate UUID
+function generateUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random() * 16 | 0,
+            v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
 
 // Add patient history endpoint
 app.get('/api/patient-history/:patientId/:doctorId', async (req, res) => {

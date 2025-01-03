@@ -142,9 +142,19 @@ ALTER TABLE appointments ADD column mode TEXT;
 .schema appointments
 
 UPDATE appointments 
-SET time = '8:47'  -- New time in 24-hour format
-WHERE id = 5;  
+SET time = '09:19'  -- New time in 24-hour format
+WHERE id = 10;  
 
 UPDATE appointments 
-SET date = '2025-01-03'  -- New date in YYYY-MM-DD format
-WHERE id = 5;  
+SET date = '2025-01-04'  -- New date in YYYY-MM-DD format
+WHERE id = 8;  
+
+SELECT * FROM users
+
+-- Add video meeting fields to appointments table
+ALTER TABLE appointments ADD COLUMN video_room_link TEXT;
+ALTER TABLE appointments ADD COLUMN meeting_id TEXT;
+
+ALTER TABLE appointments DROP COLUMN video_room_link;
+-- Keep meeting_id for WebRTC connection
+ALTER TABLE appointments ADD COLUMN meeting_id TEXT;

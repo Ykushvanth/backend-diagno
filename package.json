@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "start-ws": "node websocket-server.js"
   },
   "keywords": [],
   "author": "",
@@ -34,7 +35,8 @@
     "sqlite3": "^5.0.2",
     "tesseract.js": "^5.1.1",
     "translate-google": "^1.5.0",
-    "translate-google-api": "^1.0.4"
+    "translate-google-api": "^1.0.4",
+    "ws": "^8.x.x"
   },
   "devDependencies": {
     "nodemon": "^2.0.22"
