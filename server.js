@@ -2,10 +2,11 @@ const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs').promises;
-const {open} = require("sqlite")
+const {open} = require("sqlite");
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const cors = require('cors');
+const { sendAppointmentEmail } = require('./utils/emailService');
 
 const multer = require('multer');
 // const fs = require('fs');
@@ -462,34 +463,45 @@ app.get('/api/patient-history/:patientId/:doctorId', async (req, res) => {
     // Signup endpoint
     app.post('/api/signup', async (req, res) => {
         try {
-            const { username, firstname, lastname, email, phoneNumber, dateOfBirth, password, gender } = req.body;
+            const {
+                username,
+                firstname,
+                lastname,
+                email,
+                phoneNumber,
+                dateOfBirth,
+                password,
+                gender
+            } = req.body;
 
-            // First, check if email already exists
-            const existingUser = await db.get('SELECT email FROM users WHERE email = ?', [email]);
-            
-            if (existingUser) {
+            console.log('Received signup data:', req.body); // Debug log
+
+            // Validate required fields
+            if (!username || !firstname || !lastname || !email || !password) {
                 return res.status(400).json({
-                    error: 'Email already registered. Please use a different email or try logging in.'
+                    success: false,
+                    error: 'All required fields must be filled'
                 });
             }
 
-            // If email doesn't exist, proceed with registration
+            // Hash the password
             const hashedPassword = await bcrypt.hash(password, 10);
-            
+
+            // Insert user into database
             const query = `
                 INSERT INTO users (
-                    username, 
-                    firstname, 
-                    lastname, 
-                    email, 
-                    phone_number, 
-                    date_of_birth, 
-                    gender, 
+                    username,
+                    firstname,
+                    lastname,
+                    email,
+                    phoneNumber,
+                    dateOfBirth,
+                    gender,
                     password
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             `;
 
-            await db.run(query, [
+            const result = await db.run(query, [
                 username,
                 firstname,
                 lastname,
@@ -500,13 +512,34 @@ app.get('/api/patient-history/:patientId/:doctorId', async (req, res) => {
                 hashedPassword
             ]);
 
+            console.log('Database insert result:', result); // Debug log
+
             res.status(201).json({
+                success: true,
                 message: 'User registered successfully'
             });
 
         } catch (error) {
             console.error('Signup error:', error);
+            
+            // Check for unique constraint violations
+            if (error.message.includes('UNIQUE constraint failed')) {
+                if (error.message.includes('users.email')) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'Email already registered'
+                    });
+                }
+                if (error.message.includes('users.username')) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'Username already taken'
+                    });
+                }
+            }
+
             res.status(500).json({
+                success: false,
                 error: 'Registration failed. Please try again.'
             });
         }
@@ -637,6 +670,12 @@ try {
 //     return result.count === 0; // Returns true if slot is available
 // };
 
+const generateMeetingId = () => {
+    const timestamp = Date.now();
+    const randomString = Math.random().toString(36).substring(2, 15);
+    return `diagno-${timestamp}-${randomString}`;
+};
+
 app.post('/api/appointments', async (req, res) => {
     try {
         const {
@@ -650,82 +689,110 @@ app.post('/api/appointments', async (req, res) => {
             phone_number,
             address,
             specialist,
-            location
+            location,
+            mode
         } = req.body;
 
-        // Debug log for received data
         console.log('Received appointment data:', req.body);
 
-        // Validate required fields
-        if (!doctor_id || !user_id || !patient_name || !date || !time) {
+        // First get user's email
+        const userQuery = 'SELECT email FROM users WHERE id = ?';
+        const user = await db.get(userQuery, [user_id]);
+        console.log('User data:', user);
+
+        if (!user || !user.email) {
+            console.error('User email not found for id:', user_id);
             return res.status(400).json({
-                error: 'Missing required fields',
-                details: 'doctor_id, user_id, patient_name, date, and time are required'
+                success: false,
+                error: 'User email not found'
             });
         }
 
-        // Validate age if provided
-        if (age && isNaN(age)) {
-            return res.status(400).json({
-                error: 'Invalid age',
-                details: 'Age must be a number'
-            });
-        }
+        // Get doctor details
+        const doctorQuery = 'SELECT * FROM doctors WHERE id = ?';
+        const doctor = await db.get(doctorQuery, [doctor_id]);
+        console.log('Doctor data:', doctor);
 
-        // Check slot availability
-        console.log('Checking availability for:', { doctor_id, date, time });
-        const isAvailable = await checkAvailability(db, doctor_id, date, time);
-        if (!isAvailable) {
-            return res.status(409).json({
-                error: 'Time slot already booked',
-                message: 'Please select a different time or date'
-            });
-        }
+        // Generate meeting ID for online appointments
+        const meeting_id = mode === 'Online' ? `meet-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` : null;
 
-        // Insert the appointment
-        const query = `
+        // Create appointment
+        const result = await db.run(`
             INSERT INTO appointments (
-                doctor_id,
-                user_id,
-                patient_name,
-                gender,
-                age,
-                date,
-                time,
-                phoneNumber,
-                address,
-                specialist,
-                location,
-                status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `;
-        const result = await db.run(query, [
-            doctor_id,
-            user_id,
-            patient_name,
-            gender,
-            age,
-            date,
-            time,
-            phoneNumber,
-            address,
-            specialist,
-            location,
-            'Upcoming'
+                doctor_id, user_id, patient_name, gender, age,
+                date, time, phone_number, address, specialist,
+                location, mode, meeting_id, status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+            doctor_id, user_id, patient_name, gender, age,
+            date, time, phone_number, address, specialist,
+            location, mode, meeting_id, 'Upcoming'
         ]);
 
         console.log('Appointment created:', result);
 
+        // Send confirmation email
+        const emailSent = await sendAppointmentEmail(
+            {
+                patient_name,
+                date,
+                time,
+                mode,
+                meeting_id,
+                location
+            },
+            doctor,
+            user.email
+        );
+
+        console.log('Email sending result:', emailSent);
+
         res.status(201).json({
+            success: true,
             message: 'Appointment booked successfully',
-            appointmentId: result.lastID
+            emailSent,
+            appointmentId: result.lastID,
+            meeting_id
         });
 
     } catch (error) {
-        console.error('Error booking appointment:', error);
+        console.error('Appointment creation error:', error);
         res.status(500).json({
-            error: 'Failed to book appointment',
-            details: error.message
+            success: false,
+            error: error.message || 'Failed to create appointment'
+        });
+    }
+});
+
+// Add a test endpoint to verify email functionality
+app.get('/test-email/:email', async (req, res) => {
+    try {
+        const testResult = await sendAppointmentEmail(
+            {
+                patient_name: 'Test Patient',
+                date: '2024-01-01',
+                time: '10:00 AM',
+                mode: 'Online',
+                meeting_id: 'test-123',
+                location: 'Test Location'
+            },
+            {
+                name: 'Test Doctor',
+                specialization: 'General'
+            },
+            req.params.email
+        );
+
+        res.json({
+            success: true,
+            emailSent: testResult,
+            sentTo: req.params.email
+        });
+    } catch (error) {
+        console.error('Test email error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
         });
     }
 });
