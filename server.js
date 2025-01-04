@@ -6,6 +6,7 @@ const {open} = require("sqlite");
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const cors = require('cors');
+const http = require('http');
 
 const { sendAppointmentEmail } = require('./utils/emailService');
 
@@ -89,24 +90,44 @@ app.use((err, req, res, next) => {
 const dbPath = path.join(__dirname, 'diagno.db');
 let db = null;
 
+const server = http.createServer(app);
+
+// Updated Socket.IO configuration
+const io = require('socket.io')(server, {
+    cors: {
+        origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'https://frontend-diagno.vercel.app'],
+        methods: ['GET', 'POST'],
+        credentials: true,
+        allowedHeaders: ['*']
+    },
+    pingTimeout: 60000,
+    pingInterval: 25000,
+    transports: ['websocket'],
+    allowEIO3: true
+});
+
 const initializeDbAndServe = async () => {
-   try{
-    db = await open({
-        filename: dbPath,
-        driver: sqlite3.Database,
-    });
+    try {
+        db = await open({
+            filename: dbPath,
+            driver: sqlite3.Database,
+        });
 
-    const PORT = 3009;
-    app.listen(PORT, () => {
-        console.log(`Server is running on http://localhost:${PORT}`);
-    });
+        const PORT = 3009;
+        server.listen(PORT, () => {
+            console.log(`Server is running on http://localhost:${PORT}`);
+        });
 
-   } catch (e) {
+    } catch (e) {
         console.error(`Error initializing DB: ${e.message}`);
         process.exit(1);
     }
 };
 
+// Error handling for the server
+server.on('error', (error) => {
+    console.error('Server error:', error);
+});
 
     // Medical report analysis endpoint
     app.post('/api/analyze', (req, res, next) => {
@@ -1434,5 +1455,39 @@ const analyzeXrayUsingRapidAPI = async (imagePath) => {
     }
 };
 
+// Socket.IO connection handling
+io.on('connection', (socket) => {
+    console.log('New connection established:', socket.id);
+
+    socket.on('join-room', ({ meeting_id, isDoctor }) => {
+        console.log(`${isDoctor ? 'Doctor' : 'Patient'} joining room:`, meeting_id);
+        socket.join(meeting_id);
+        socket.to(meeting_id).emit('user-connected', socket.id);
+        socket.emit('joined-room', { meeting_id, socketId: socket.id });
+    });
+
+    socket.on('offer', ({ offer, meeting_id }) => {
+        console.log('Forwarding offer in room:', meeting_id);
+        socket.to(meeting_id).emit('offer', offer);
+    });
+
+    socket.on('answer', ({ answer, meeting_id }) => {
+        console.log('Forwarding answer in room:', meeting_id);
+        socket.to(meeting_id).emit('answer', answer);
+    });
+
+    socket.on('ice-candidate', ({ candidate, meeting_id }) => {
+        console.log('Forwarding ICE candidate in room:', meeting_id);
+        socket.to(meeting_id).emit('ice-candidate', candidate);
+    });
+
+    socket.on('disconnect', () => {
+        console.log('Client disconnected:', socket.id);
+    });
+
+    socket.on('error', (error) => {
+        console.error('Socket error:', error);
+    });
+});
 
 initializeDbAndServe();
