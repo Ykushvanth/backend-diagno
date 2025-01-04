@@ -39,7 +39,7 @@ const app = express();
 // Configure CORS before other middleware
 // app.use(cors());
 app.use(cors({
-    origin: ['http://localhost:3001', 'http://localhost:3002', 'http://localhost:3000','https://main-frontend-for-diagno-4fpycnegs.vercel.app'],
+    origin: ['http://localhost:3001', 'http://localhost:3002', 'http://localhost:3000','https://frontend-diagno.vercel.app'],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
