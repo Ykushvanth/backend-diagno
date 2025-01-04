@@ -95,7 +95,7 @@ const server = http.createServer(app);
 // Updated Socket.IO configuration
 const io = require('socket.io')(server, {
     cors: {
-        origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'https://frontend-diagno.vercel.app'],
+        origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'https://frontend-diagno.vercel.app','https://doctors-frontend-diango.vercel.app'],
         methods: ['GET', 'POST'],
         credentials: true,
         allowedHeaders: ['*']
