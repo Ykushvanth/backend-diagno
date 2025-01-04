@@ -6,6 +6,7 @@ const {open} = require("sqlite");
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const cors = require('cors');
+
 const { sendAppointmentEmail } = require('./utils/emailService');
 
 const multer = require('multer');
