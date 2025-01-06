@@ -169,61 +169,6 @@ server.on('error', (error) => {
         });
     });
 
-    // Example backend code (e.g., Express.js)
-
-
-
-  //  Login endpoint old
-    // app.post('/api/login', async (req, res) => {
-    //     console.log('Login request received:', req.body);
-    //     const { username, password } = req.body;
-
-    //     if (!username || !password) {
-    //         console.log('Missing username or password');
-    //         return res.status(400).json({ error: 'Username and password are required' });
-    //     }
-
-    //     try {
-    //         db.get('SELECT * FROM users WHERE username = ?', [username], async (err, user) => {
-    //             if (err) {
-    //                 console.error('Database error:', err.message);
-    //                 return res.status(500).json({ error: 'Server error' });
-    //             }
-
-    //             if (!user) {
-    //                 console.log('User not found:', username);
-    //                 return res.status(401).json({ error: 'Invalid username or password' });
-    //             }
-
-    //             try {
-    //                 const match = await bcrypt.compare(password, user.password);
-    //                 if (!match) {
-    //                     console.log('Invalid password for user:', username);
-    //                     return res.status(401).json({ error: 'Invalid username or password' });
-    //                 }
-
-    //                 const token = jwt.sign(
-    //                     { id: user.id, username: user.username },
-    //                     'your-secret-key',
-    //                     { expiresIn: '30d' }
-    //                 );
-
-    //                 console.log('Login successful for user:', username);
-    //                 res.json({
-    //                     success: true,
-    //                     jwtToken: token,
-    //                     username: user.username
-    //                 });
-    //             } catch (error) {
-    //                 console.error('Password comparison error:', error.message);
-    //                 res.status(500).json({ error: 'Server error' });
-    //             }
-    //         });
-    //     } catch (error) {
-    //         console.error('Login error:', error.message);
-    //         res.status(500).json({ error: 'Server error' });
-    //     }
-    // });
 
     app.post('/api/login', async (request, response) => {
         try {
@@ -884,6 +829,35 @@ app.get('/booking-history', authenticateToken, async (req, res) => {
         res.status(500).json({ 
             error: 'Failed to fetch booking history',
             details: error.message 
+        });
+    }
+});
+
+// Add prescription update endpoint
+app.post('/api/appointments/:appointmentId/prescription', async (req, res) => {
+    try {
+        const { appointmentId } = req.params;
+        const { prescription } = req.body;
+
+        const query = `
+            UPDATE appointments 
+            SET prescription = ?, 
+                status = 'Completed'
+            WHERE id = ?
+        `;
+
+        await db.run(query, [prescription, appointmentId]);
+
+        res.json({
+            success: true,
+            message: 'Prescription updated successfully'
+        });
+
+    } catch (error) {
+        console.error('Error updating prescription:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to update prescription'
         });
     }
 });

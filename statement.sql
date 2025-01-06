@@ -61,17 +61,7 @@
 -- -- -- WHERE id IN (9, 10);
 
 
--- -- -- INSERT INTO doctors (id, name, specialization, appointment_cost, location, rating, phone_number, location_url, image_url) VALUES
-
--- -- -- (91, 'Dr. Sameer Reddy', 'Pediatrician', 250, 'Gachibowli, Hyderabad', 4.9, '9876543392', 'https://goo.gl/maps/gachibowli', 'https://res.cloudinary.com/dbroxheos/image/upload/v1735456395/udbj0j7bngxe7bq81nje.jpg'),
--- -- -- (92, 'Dr. Anusha Rao', 'Pediatrician', 230, 'Gachibowli, Hyderabad', 4.8, '9876543393', 'https://goo.gl/maps/gachibowli', 'https://res.cloudinary.com/dbroxheos/image/upload/v1735456304/gcgnj9y0ucgapgmosxpd.jpg'),
--- -- -- (93, 'Dr. Vikram Deshmukh', 'Neurologist', 260, 'Banjara Hills, Hyderabad', 4.9, '9876543394', 'https://goo.gl/maps/banjarahills', 'https://res.cloudinary.com/dbroxheos/image/upload/v1735456384/bwgnpzlaehxkssamntq6.jpg'),
--- -- -- (94, 'Dr. Meghana Shetty', 'Neurologist', 240, 'Banjara Hills, Hyderabad', 4.8, '9876543395', 'https://goo.gl/maps/banjarahills', 'https://res.cloudinary.com/dbroxheos/image/upload/v1735456271/eiokgg8ooittcnlnstnd.jpg'),
-SELECT * from appointments
--- -- -- (95, 'Dr. Aditya Malhotra', 'Dentist', 200, 'Saket, Delhi', 4.7, '9876543396', 'https://goo.gl/maps/saket', 'https://res.cloudinary.com/dbroxheos/image/upload/v1735456361/gofpednwasvmkof1ay7o.jpg'),
--- -- -- (96, 'Dr. Nisha Kapoor', 'Dentist', 210, 'Saket, Delhi', 4.8, '9876543397', 'https://goo.gl/maps/saket', 'https://res.cloudinary.com/dbroxheos/image/upload/v1735456244/peyqqdtflgm0qsn3cn8i.jpg'),
--- -- -- (97, 'Dr. Rajat Sharma', 'Gynecologist', 270, 'Rohini, Delhi', 4.9, '9876543398', 'https://goo.gl/maps/rohini', 'https://res.cloudinary.com/dbroxheos/image/upload/v1735456369/k4trbcb2hoxau8mxjzif.jpg'),
--- -- -- (98, 'Dr. Priyanka Verma', 'Gynecologist', 260, 'Rohini, Delhi', 4.9, '9876543399', 'https://goo.gl/maps/rohini', 'https://res.cloudinary.com/dbroxheos/image/upload/v1735456296/c6v7fnr2ftnhpmhttx71.jpg'),
+INSERT INTO doctors (id, name, specialization, appointment_cost, location, rating, phone_number, location_url, image_url) VALUES
 
 
 -- -- -- (99, 'Dr. Kunal Shah', 'Orthopedist', 240, 'Andheri, Mumbai', 4.8, '9876543400', 'https://goo.gl/maps/andheri', 'https://res.cloudinary.com/dbroxheos/image/upload/v1735456384/bwgnpzlaehxkssamntq6.jpg'),
@@ -102,7 +92,7 @@ SELECT * from appointments
 -- --     FOREIGN KEY (doctor_id) REFERENCES doctors (id),
 -- --     FOREIGN KEY (user_id) REFERENCES users (id)
 -- -- );
-
+SELECT * from doctors
 -- .schema appointments
 -- -- Drop Table appointments
 -- -- -- ALTER TABLE doctors ADD COLUMN username VARCHAR(255) ;
@@ -146,10 +136,10 @@ SELECT * from appointments
 -- -- UPDATE users 
 -- -- SET email = '99220041418@klu.ac.in'  -- New time in 24-hour format
 -- -- WHERE id = 1;  e
-
+SELECT * FROM appointments
 UPDATE appointments 
-SET time = '13:35'  -- New date in YYYY-MM-DD format
-WHERE id = 6;  
+SET time = '01:50'  -- New date in YYYY-MM-DD format
+WHERE id = 13;  
 
 -- -- SELECT * FROM users
 
@@ -1710,3 +1700,74 @@ SELECT * FROM appointments
 
 
 -- initializeDbAndServe();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Updated Socket.IO configuration
+const io = require('socket.io')(server, {
+    cors: {
+        origin: ["http://localhost:3000", "http://localhost:3001"],
+        methods: ["GET", "POST"],
+        credentials: true,
+        allowedHeaders: ["*"]
+    },
+    pingTimeout: 60000,
+    pingInterval: 25000,
+    transports: ['websocket'],
+    allowEIO3: true
+});
+
+// Debug logging for socket connections
+io.on('connection', (socket) => {
+    console.log('New connection established:', socket.id);
+
+    socket.on('join-room', ({ meeting_id, isDoctor }) => {
+        console.log(`${isDoctor ? 'Doctor' : 'Patient'} joining room:`, meeting_id);
+        socket.join(meeting_id);
+        // Notify others in the room
+        socket.to(meeting_id).emit('user-connected', socket.id);
+        // Send acknowledgment back
+        socket.emit('joined-room', { meeting_id, socketId: socket.id });
+    });
+
+    socket.on('offer', ({ offer, meeting_id }) => {
+        console.log('Forwarding offer in room:', meeting_id);
+        socket.to(meeting_id).emit('offer', offer);
+    });
+
+    socket.on('answer', ({ answer, meeting_id }) => {
+        console.log('Forwarding answer in room:', meeting_id);
+        socket.to(meeting_id).emit('answer', answer);
+    });
+
+    socket.on('ice-candidate', ({ candidate, meeting_id }) => {
+        console.log('Forwarding ICE candidate in room:', meeting_id);
+        socket.to(meeting_id).emit('ice-candidate', candidate);
+    });
+
+    socket.on('disconnect', () => {
+        console.log('Client disconnected:', socket.id);
+    });
+
+    socket.on('error', (error) => {
+        console.error('Socket error:', error);
+    });
+});
+
+// Error handling
+server.on('error', (error) => {
+    console.error('Server error:', error);
+});
