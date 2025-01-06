@@ -338,7 +338,7 @@ const analyzeXrayUsingRapidAPI = async (imagePath) => {
     } catch (error) {
         console.error('X-ray Analysis Error:', error.response?.data || error.message);
         throw new Error(`X-ray analysis failed: ${error.message}`);
-    }
+    }//
 };
 module.exports = {
     upload,
